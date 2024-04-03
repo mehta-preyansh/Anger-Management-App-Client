@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "544509776632",
+    "project_id": "anger-management-9d8a2",
+    "storage_bucket": "anger-management-9d8a2.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:544509776632:android:c574e63ad16dac5ace610d",
+        "android_client_info": {
+          "package_name": "com.angerapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "544509776632-mlvprjc068dh1rf54vk53an3evcntksb.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.angerapp",
+            "certificate_hash": "0b9bcebfa687cdd02f1d79cd00c85182bd197e9a"
+          }
+        },
+        {
+          "client_id": "544509776632-i7uufe6fnvdllpmhmm1r33g2i26gbbne.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCLz8qfC7-sz6QqmAin5ENEh8YTuj6Bps"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "544509776632-i7uufe6fnvdllpmhmm1r33g2i26gbbne.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
