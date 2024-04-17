@@ -14,6 +14,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { AuthContext } from '../../context/authContext';
+import Icon from 'react-native-vector-icons/FontAwesome';
 
 const Login = ({ navigation }) => {
   //Global state through context
@@ -45,7 +46,6 @@ const Login = ({ navigation }) => {
     }
 
   }
-
 
   const validation = () => {
     if (password.length < 8) {
@@ -82,7 +82,6 @@ const Login = ({ navigation }) => {
             await AsyncStorage.setItem('user', JSON.stringify(response.user))
             setLoading(false);
             setState({ ...state, user: response.user })
-            // navigation.navigate('feedback')
           } else {
             setLoading(false);
             // Handle failed login
@@ -138,9 +137,9 @@ const Login = ({ navigation }) => {
             </TouchableOpacity>
           )}
           <Text style={{ color: '#d9d9d9' }}>Or continue with</Text>
-          {/* <TouchableOpacity onPress={onGoogleButtonPress}>
+          <TouchableOpacity onPress={onGoogleButtonPress}>
             <Icon name="google" size={22} color="#fff" />
-          </TouchableOpacity> */}
+          </TouchableOpacity>
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <Text style={{ color: '#d9d9d9' }}>New User?</Text>
             <TouchableOpacity

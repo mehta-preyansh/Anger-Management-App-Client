@@ -2,7 +2,8 @@ import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import Navigation from './Navigation';
 
-function App(): React.JSX.Element {
+
+function App() {
 
   return (
     <NavigationContainer>

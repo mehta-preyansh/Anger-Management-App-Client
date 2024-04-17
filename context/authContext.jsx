@@ -6,13 +6,16 @@ const AuthContext = createContext()
 const AuthProvider = ({children})=>{
   const [state, setState] = useState({
     user: null,
+    events: null
   })
 
   useEffect(()=>{
     const localStorageData = async () => {
-      const data = await AsyncStorage.getItem('user')
-      const parsedData =  JSON.parse(data)
-      setState({...state, user: parsedData})
+      const user = await AsyncStorage.getItem('user')
+      const events = await AsyncStorage.getItem('events')
+      const parsedUser =  JSON.parse(user)
+      const parsedEvents =  JSON.parse(events)
+      setState({...state, user: parsedUser, events: parsedEvents})
     }
     localStorageData()
   },[])

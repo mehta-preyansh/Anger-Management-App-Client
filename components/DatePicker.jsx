@@ -1,31 +1,19 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native'
 import React, { useEffect, useState } from 'react'
 import { DateTimePickerAndroid } from '@react-native-community/datetimepicker'
 
-const DatePicker = () => {
-  useEffect(() => {
-    console.log(selectedDate.toLocaleString())
-  })
+const DatePicker = ({data, setData}) => {
   const [todayDate, setTodayDate] = useState(new Date());
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const onChange = (event, selectedDate) => {
-    // console.log(todayDate.getDate()-selectedDate.getDate())
-    if(todayDate.getMonth()-selectedDate.getMonth()>0 && todayDate.getDate()-selectedDate.getDate()<27){
-      Alert.alert(`Invalid Date`, 'Please enter a date not more than 7 days before')
-    }
-    if(todayDate.getDate()<selectedDate.getDate()){
-      Alert.alert(`Invalid Date`, 'Can you predict the future?')
-    }
-    else{
-      const currentDate = selectedDate;
-      setSelectedDate(currentDate);
-    }
+    const currentDate = selectedDate;
+    setSelectedDate(currentDate)
   };
 
   const showMode = (currentMode) => {
     DateTimePickerAndroid.open({
-      value: selectedDate,
+      value: selectedDate || new Date(),
       onChange,
       mode: currentMode,
       is24Hour: true,
@@ -39,24 +27,45 @@ const DatePicker = () => {
   const showTimepicker = () => {
     showMode('time');
   };
+
+  useEffect(()=>{
+    if((todayDate.getMonth()-selectedDate?.getMonth()>0) && todayDate.getDate()>7){
+      Alert.alert(`Invalid Date`, 'Please enter a date not more than 7 days before')
+      setSelectedDate(null)
+    }
+    else if((todayDate.getMonth()-selectedDate?.getMonth()>0) && (selectedDate.getDate()-todayDate.getDate()<23)){
+      Alert.alert(`Invalid Date`, 'Please enter a date not more than 7 days before')
+      setSelectedDate(null)
+    }
+    else if(todayDate.getDate()-selectedDate?.getDate()>7){
+      Alert.alert(`Invalid Date`, 'Please enter a date not more than 7 days before')
+      setSelectedDate(null)
+    }
+    else if(todayDate.getDate()<selectedDate?.getDate()){
+      Alert.alert(`Invalid Date`, 'Please enter a past event.')
+      setSelectedDate(null)
+    }
+    else{
+      setData({...data, date: selectedDate});
+    }
+  },[selectedDate])
   return (
     <>
     <View style={{alignItems:'center'}}>
       <View style={styles.wrapper}>
-        <Text style={{ color: "#fff" }}>When did the event happened?</Text>
         <TouchableOpacity onPress={showDatepicker} >
-          <View style={{padding:5}}>
+          <View style={{padding:10, backgroundColor: "#ffffff18", borderRadius: 5}}>
             <Text style={{color: "#ffffff92"}}>Select Date</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity onPress={showTimepicker} >
-          <View style={{padding:5}}>
+          <View style={{padding:10, backgroundColor: "#ffffff18", borderRadius: 5}}>
             <Text style={{color: "#ffffff92"}}>Select Time</Text>
           </View>
         </TouchableOpacity>
       </View>
       {selectedDate && (
-        <Text style={{color: "#fff"}}>Selected Date : {selectedDate.toLocaleString()}</Text>
+        <Text style={{color: "#fff", fontWeight: 'bold', fontSize: 12}}>Selected Date : {selectedDate.toLocaleString()}</Text>
         )}
     </View>
     </>
