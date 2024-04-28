@@ -20,7 +20,7 @@ export default function Logbook() {
       const events = state.events
       if (!events) {
         fetch(
-          `https://anger-management-app-server.onrender.com/event?username=${state.user.username}`,
+          `https://anger-management-app-server.onrender.com/events?username=${state.user.username}`,
           {
             method: 'GET',
             headers: {
@@ -59,6 +59,7 @@ export default function Logbook() {
               contentContainerStyle={{padding: 10}}
               renderItem={({item, index}) => (
                 <AngerLog
+                  id={item._id}
                   level={item.angerLevel}
                   date={item.date}
                   reason={item.reason}
