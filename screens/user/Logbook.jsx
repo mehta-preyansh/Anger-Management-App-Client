@@ -15,7 +15,6 @@ export default function Logbook() {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useContext(AuthContext);
   useEffect(() => {
-    // console.log(typeof(state.events))
     const fetchAngerLogs = async () => {
       setLoading(true);
       const events = state.events

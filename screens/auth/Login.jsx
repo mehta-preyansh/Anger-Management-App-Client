@@ -100,7 +100,7 @@ const Login = ({ navigation }) => {
     <View style={styles.wrapper}>
       <View style={styles.header}>
         <Text style={{ color: 'white', fontSize: 25, paddingLeft: 20 }}>
-          App Name
+          KRODhFit
         </Text>
       </View>
       <View style={styles.loginForm}>
@@ -136,10 +136,10 @@ const Login = ({ navigation }) => {
               </Text>
             </TouchableOpacity>
           )}
-          <Text style={{ color: '#d9d9d9' }}>Or continue with</Text>
+          {/* <Text style={{ color: '#d9d9d9' }}>Or continue with</Text>
           <TouchableOpacity onPress={onGoogleButtonPress}>
             <Icon name="google" size={22} color="#fff" />
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           <View style={{ flexDirection: 'row', gap: 6 }}>
             <Text style={{ color: '#d9d9d9' }}>New User?</Text>
             <TouchableOpacity

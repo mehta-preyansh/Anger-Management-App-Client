@@ -22,9 +22,6 @@ const Feedback = () => {
   });
 
   const submit = async () => {
-    console.log('====================================');
-    console.log(state);
-    console.log('====================================');
     if (details.reason && details.date) {
       //Store in async storage
       const addedEvents = state.events.push({
