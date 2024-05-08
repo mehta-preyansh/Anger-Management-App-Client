@@ -15,10 +15,11 @@ export default function Logbook() {
   const [loading, setLoading] = useState(true);
   const [state, setState] = useContext(AuthContext);
   useEffect(() => {
+    // console.log(typeof(state.events))
     const fetchAngerLogs = async () => {
       setLoading(true);
       const events = state.events
-      if (!events) {
+      if (events===null) {
         fetch(
           `https://anger-management-app-server.onrender.com/events?username=${state.user.username}`,
           {

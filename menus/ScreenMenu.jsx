@@ -13,12 +13,13 @@ import {TabButton} from '../components/NavigationBtn';
 import {View} from 'react-native-animatable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import { initialState } from '../context/initialState';
 
 const ScreenMenu = () => {
   const Stack = createNativeStackNavigator();
   const Tab = createBottomTabNavigator();
   const [state, setState] = useContext(AuthContext);
-  const authenticatedUser = state.user;
+  const authenticatedUser = state.user.info.username;
 
   const tabArr = [
     {
@@ -48,7 +49,7 @@ const ScreenMenu = () => {
   ];
 
   const logout = async () => {
-    setState({user: null, token: ''});
+    setState(initialState);
     await AsyncStorage.removeItem('user');
     await AsyncStorage.removeItem('events');
   };
@@ -59,7 +60,7 @@ const ScreenMenu = () => {
         <View style={{flex:1, backgroundColor: '#0b0909'}}>
           <View style={styles.headingWrapper}>
             <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>
-              {state.user.username}
+              {`Hello, ${state.user.info.username}`}
             </Text>
             <TouchableOpacity onPress={logout} style={{marginRight: 10}}>
               <Icon name="power-off" size={22} color="#fff" />

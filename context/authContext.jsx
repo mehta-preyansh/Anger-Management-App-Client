@@ -1,13 +1,10 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import React,{createContext, useEffect, useState} from "react";
-
+import { initialState } from "./initialState";
 const AuthContext = createContext()
 
 const AuthProvider = ({children})=>{
-  const [state, setState] = useState({
-    user: null,
-    events: null
-  })
+  const [state, setState] = useState(initialState)
 
   useEffect(()=>{
     const localStorageData = async () => {
@@ -15,7 +12,7 @@ const AuthProvider = ({children})=>{
       const events = await AsyncStorage.getItem('events')
       const parsedUser =  JSON.parse(user)
       const parsedEvents =  JSON.parse(events)
-      setState({...state, user: parsedUser, events: parsedEvents})
+      setState({...state, user: {...state.user, info: parsedUser}, events: parsedEvents ? parsedEvents : []})
     }
     localStorageData()
   },[])

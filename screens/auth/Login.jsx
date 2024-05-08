@@ -81,7 +81,7 @@ const Login = ({ navigation }) => {
             Alert.alert(response.message)
             await AsyncStorage.setItem('user', JSON.stringify(response.user))
             setLoading(false);
-            setState({ ...state, user: response.user })
+            setState({ ...state, user: { ...state.user , info: response.user} })
           } else {
             setLoading(false);
             // Handle failed login

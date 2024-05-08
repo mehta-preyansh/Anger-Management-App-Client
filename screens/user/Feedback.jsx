@@ -18,11 +18,13 @@ const Feedback = () => {
   const [details, setDetails] = useState({
     reason: '',
     date: null,
-    level: 2,
+    level: 5,
   });
 
   const submit = async () => {
-    // console.log(details);
+    console.log('====================================');
+    console.log(state);
+    console.log('====================================');
     if (details.reason && details.date) {
       //Store in async storage
       const addedEvents = state.events.push({
@@ -31,7 +33,7 @@ const Feedback = () => {
         angerLevel: details.level,
       });
       await AsyncStorage.setItem('events', JSON.stringify(addedEvents));
-      setState({...state, evets: addedEvents});
+      setState({...state, events: addedEvents});
       //Submit to server
       fetch(`https://anger-management-app-server.onrender.com/event`, {
         method: 'POST',
@@ -59,7 +61,7 @@ const Feedback = () => {
       setDetails({
         reason: '',
         date: null,
-        level: 2,
+        level: 5,
       })
     } else {
       Alert.alert(
