@@ -15,22 +15,37 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Feedback = () => {
   const [state, setState] = useContext(AuthContext);
-  const [details, setDetails] = useState({
+  const initialDetails = {
     reason: '',
     date: null,
+    startTime: null,
+    endTime: null,
     level: 5,
-  });
+  }
+  const [details, setDetails] = useState(initialDetails);
 
   const submit = async () => {
-    if (details.reason && details.date) {
+    if (
+      details.reason &&
+      details.date &&
+      details.startTime &&
+      details.endTime
+    ) {
       //Store in async storage
-      const addedEvents = state.events.push({
-        reason: details.reason,
-        date: details.date,
-        angerLevel: details.level,
+      await AsyncStorage.setItem(
+        'events',
+        JSON.stringify([
+          ...state.events,
+          details,
+        ]),
+      );
+      setState({
+        ...state,
+        events: [
+          ...state.events,
+          details,
+        ],
       });
-      await AsyncStorage.setItem('events', JSON.stringify(addedEvents));
-      setState({...state, events: addedEvents});
       //Submit to server
       fetch(`https://anger-management-app-server.onrender.com/event`, {
         method: 'POST',
@@ -38,8 +53,8 @@ const Feedback = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: state.user.username,
-          details: details,
+          username: state.user.info.username,
+          details,
         }),
       })
         .then(res => {
@@ -55,16 +70,13 @@ const Feedback = () => {
         .catch(err => {
           Alert.alert('Server error');
         });
-      setDetails({
-        reason: '',
-        date: null,
-        level: 5,
-      })
+      setDetails(initialDetails);
     } else {
       Alert.alert(
         'All fields required.',
         'Please enter all the event details.',
       );
+      setDetails(initialDetails);
     }
   };
 
@@ -81,6 +93,7 @@ const Feedback = () => {
             placeholder="Enter here..."
             placeholderTextColor="#949494"
             onChangeText={e => setDetails({...details, reason: e})}
+            value={details.reason}
           />
         </View>
         <View

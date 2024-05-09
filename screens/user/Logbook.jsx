@@ -3,6 +3,7 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from 'react-native';
 import React, {useContext, useEffect, useState} from 'react';
@@ -17,10 +18,10 @@ export default function Logbook() {
   useEffect(() => {
     const fetchAngerLogs = async () => {
       setLoading(true);
-      const events = state.events
-      if (events===null) {
+      const eventsLength = state.events.length;
+      if (!eventsLength) {
         fetch(
-          `https://anger-management-app-server.onrender.com/events?username=${state.user.username}`,
+          `https://anger-management-app-server.onrender.com/events?username=${state.user.info.username}`,
           {
             method: 'GET',
             headers: {
@@ -54,19 +55,25 @@ export default function Logbook() {
           <ActivityIndicator style={{margin: 20}} />
         ) : (
           <View style={styles.container}>
-            <FlatList
-              data={state.events}
-              contentContainerStyle={{padding: 10}}
-              renderItem={({item, index}) => (
-                <AngerLog
-                  id={item._id}
-                  level={item.angerLevel}
-                  date={item.date}
-                  reason={item.reason}
-                  isLast={index == state.events.length - 1 ? true : false}
-                />
-              )}
-            />
+            {state.events.length ? (
+              <FlatList
+                data={state.events}
+                contentContainerStyle={{padding: 10}}
+                renderItem={({item, index}) => (
+                  <AngerLog
+                    id={item._id}
+                    level={item.angerLevel || item.level}
+                    date={item.date}
+                    startTime={item.startTime}
+                    endTime={item.endTime}
+                    reason={item.reason}
+                    isLast={index == state.events.length - 1 ? true : false}
+                  />
+                )}
+              />
+            ) : (
+              <Text>No Logs yet</Text>
+            )}
           </View>
         )}
       </View>
@@ -88,6 +95,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     backgroundColor: '#1a1a1a',
     borderRadius: 20,
-    paddingVertical:15
+    paddingVertical: 15,
+    paddingLeft: 15,
   },
 });

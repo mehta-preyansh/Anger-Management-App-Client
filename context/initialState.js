@@ -1,6 +1,7 @@
 export const initialState = {
   user: {
     isAuthenticated: false,
+    id: null,
     info: {
       username: null,
       email: null,
@@ -9,7 +10,8 @@ export const initialState = {
     tokens: {
       accessToken: null,
       refreshToken: null,
-      expiresAt: null,
+      expiresIn: null,
+      user_id: null
     },
   },
   events: [],

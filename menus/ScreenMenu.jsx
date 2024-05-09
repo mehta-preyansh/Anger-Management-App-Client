@@ -1,4 +1,4 @@
-import React, {useContext, useEffect, useRef} from 'react';
+import React, {useContext} from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import Register from '../screens/auth/Register';
@@ -20,7 +20,6 @@ const ScreenMenu = () => {
   const Tab = createBottomTabNavigator();
   const [state, setState] = useContext(AuthContext);
   const authenticatedUser = state.user.info.username;
-
   const tabArr = [
     {
       route: 'logbook',

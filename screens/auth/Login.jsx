@@ -1,5 +1,5 @@
-import React, { useContext, useState } from 'react';
-import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import React, {useContext, useState} from 'react';
+import {GoogleSignin} from '@react-native-google-signin/google-signin';
 import auth from '@react-native-firebase/auth';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -8,17 +8,17 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  StatusBar,
+  // StatusBar,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
 } from 'react-native';
-import { AuthContext } from '../../context/authContext';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import {AuthContext} from '../../context/authContext';
+// import Icon from 'react-native-vector-icons/FontAwesome';
 
-const Login = ({ navigation }) => {
+const Login = ({navigation}) => {
   //Global state through context
-  const [state, setState] = useContext(AuthContext)
+  const [state, setState] = useContext(AuthContext);
   //Component's local state
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
@@ -26,7 +26,7 @@ const Login = ({ navigation }) => {
 
   GoogleSignin.configure({
     webClientId:
-      "544509776632-i7uufe6fnvdllpmhmm1r33g2i26gbbne.apps.googleusercontent.com",
+      '544509776632-i7uufe6fnvdllpmhmm1r33g2i26gbbne.apps.googleusercontent.com',
   });
   async function onGoogleButtonPress() {
     try {
@@ -34,17 +34,15 @@ const Login = ({ navigation }) => {
       await GoogleSignin.hasPlayServices();
       // Get the users ID token
       const userInfo = await GoogleSignin.signIn();
-      console.log(userInfo)
+      console.log(userInfo);
       // Create a Google credential with the token
       const googleCredential = auth.GoogleAuthProvider.credential(idToken);
 
       // Sign-in the user with the credential
       return auth().signInWithCredential(googleCredential);
+    } catch (e) {
+      console.log(e);
     }
-    catch (e) {
-      console.log(e)
-    }
-
   }
 
   const validation = () => {
@@ -78,10 +76,25 @@ const Login = ({ navigation }) => {
         .then(async response => {
           if (response.status == 200) {
             // Handle successful login
-            Alert.alert(response.message)
-            await AsyncStorage.setItem('user', JSON.stringify(response.user))
+            Alert.alert(response.message);
+            const resposeEvents = response.user.events;
+            await AsyncStorage.setItem('user', JSON.stringify(response.user));
+            await AsyncStorage.setItem('events', JSON.stringify(resposeEvents));
             setLoading(false);
-            setState({ ...state, user: { ...state.user , info: response.user} })
+            setState({
+              ...state,
+              user: {
+                ...state.user,
+                info: {
+                  ...state.user.info,
+                  email: response.user.email,
+                  username: response.user.username,
+                  phone: response.user.phone,
+                },
+                id: response.user._id
+              },
+              events: resposeEvents,
+            });
           } else {
             setLoading(false);
             // Handle failed login
@@ -99,7 +112,7 @@ const Login = ({ navigation }) => {
   return (
     <View style={styles.wrapper}>
       <View style={styles.header}>
-        <Text style={{ color: 'white', fontSize: 25, paddingLeft: 20 }}>
+        <Text style={{color: 'white', fontSize: 25, paddingLeft: 20}}>
           KRODhFit
         </Text>
       </View>
@@ -140,18 +153,18 @@ const Login = ({ navigation }) => {
           <TouchableOpacity onPress={onGoogleButtonPress}>
             <Icon name="google" size={22} color="#fff" />
           </TouchableOpacity> */}
-          <View style={{ flexDirection: 'row', gap: 6 }}>
-            <Text style={{ color: '#d9d9d9' }}>New User?</Text>
+          <View style={{flexDirection: 'row', gap: 6}}>
+            <Text style={{color: '#d9d9d9'}}>New User?</Text>
             <TouchableOpacity
               onPress={() => {
                 navigation.replace('register');
               }}>
-              <Text style={{ color: '#8a445f' }}>Register here.</Text>
+              <Text style={{color: '#8a445f'}}>Register here.</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-      <StatusBar hidden />
+      {/* <StatusBar hidden /> */}
     </View>
   );
 };

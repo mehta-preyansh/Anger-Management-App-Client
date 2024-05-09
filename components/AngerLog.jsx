@@ -11,7 +11,7 @@ import Icon from 'react-native-vector-icons/AntDesign';
 import {AuthContext} from '../context/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-export default function AngerLog({level, reason, date, isLast, id}) {
+export default function AngerLog({level, reason, date, startTime, endTime, isLast, id}) {
   const styles = StyleSheet.create({
     wrapper: {
       width: '100%',
@@ -39,11 +39,12 @@ export default function AngerLog({level, reason, date, isLast, id}) {
       marginTop: 'auto',
     },
   });
-
-  const newDate = new Date(date);
-  const formattedDate = `${newDate.getHours()}:${
-    newDate.getMinutes() < 10 ? '0' : ''
-  }${newDate.getMinutes()}`;
+  const formattedDate = date => {
+    const newDate = new Date(date)
+    return `${newDate.getHours()}:${
+      newDate.getMinutes() < 10 ? '0' : ''
+    }${newDate.getMinutes()}`;
+  }
 
   const [loading, setLoading] = useState(false);
   const [state, setState] = useContext(AuthContext);
@@ -59,16 +60,17 @@ export default function AngerLog({level, reason, date, isLast, id}) {
         onPress: async () => {
           setLoading(true);
           fetch(
-            `https://anger-management-app-server.onrender.com/user/${state.user._id}/logs/${id}`,
+            `https://anger-management-app-server.onrender.com/user/${state.user.id}/logs/${id}`,
             {
               method: 'DELETE',
               headers: {
                 'Content-Type': 'application/json',
               },
             },
-          ).then(response => {
+          )
+            .then(response => {
               fetch(
-                `https://anger-management-app-server.onrender.com/events?username=${state.user.username}`,
+                `https://anger-management-app-server.onrender.com/events?username=${state.user.info.username}`,
                 {
                   method: 'GET',
                   headers: {
@@ -97,7 +99,7 @@ export default function AngerLog({level, reason, date, isLast, id}) {
       },
     ]);
   };
-  const editLog = () => {};
+  // const editLog = () => {};
 
   return (
     <View style={styles.wrapper}>
@@ -114,7 +116,7 @@ export default function AngerLog({level, reason, date, isLast, id}) {
         <Text style={{color: '#fff'}}>{`${new Date(
           date,
         ).toLocaleDateString()}`}</Text>
-        <Text style={{color: '#fff'}}>{`${formattedDate}`}</Text>
+        <Text style={{color: '#fff'}}>{`${formattedDate(startTime)} - ${formattedDate(endTime)}`}</Text>
         <View style={styles.editLog}>
           {loading ? (
             <ActivityIndicator />

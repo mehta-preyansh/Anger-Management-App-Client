@@ -10,6 +10,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 
 const Register = ({navigation}) => {
@@ -200,7 +202,7 @@ const Register = ({navigation}) => {
           </View>
         </View>
       </View>
-      <StatusBar hidden />
+      {/* <StatusBar hidden /> */}
     </View>
   );
 };
