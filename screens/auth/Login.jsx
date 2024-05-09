@@ -8,7 +8,6 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  // StatusBar,
   TouchableOpacity,
   Alert,
   ActivityIndicator,

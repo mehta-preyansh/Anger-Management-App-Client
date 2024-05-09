@@ -6,12 +6,9 @@ import {
   Text,
   TextInput,
   StyleSheet,
-  StatusBar,
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  ScrollView,
 } from 'react-native';
 
 const Register = ({navigation}) => {
