@@ -9,7 +9,8 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-} from 'react-native';
+} from 'react-native'; 
+
 
 const Register = ({navigation}) => {
   const [username, setUsername] = useState('');

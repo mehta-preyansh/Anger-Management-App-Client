@@ -22,6 +22,7 @@ import {AuthContext} from '../../context/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
 import IconAlt from 'react-native-vector-icons/MaterialCommunityIcons'
+import PushNotification from 'react-native-push-notification';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
@@ -96,11 +97,15 @@ export default function Dashboard() {
     return () => subscription.remove();
   }, []);
 
-  useEffect(()=>{
-    if(HR>=75){
-
+  useEffect(() => {
+    if(HR>=78){
+      PushNotification.localNotification({
+        channelId: "angerApp",
+        title: "Your heart rate is raising rapidly.", // Specify the title of the notification
+        message: `HR is now ${HR}`, // Specify the message of the notification
+      });
     }
-  },[HR])
+  }, [HR]);
 
   const connectToFitbit = async () => {
     setLoading(true);

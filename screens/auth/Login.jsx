@@ -76,9 +76,8 @@ const Login = ({navigation}) => {
           if (response.status == 200) {
             // Handle successful login
             Alert.alert(response.message);
-            const resposeEvents = response.user.events;
             await AsyncStorage.setItem('user', JSON.stringify(response.user));
-            await AsyncStorage.setItem('events', JSON.stringify(resposeEvents));
+            await AsyncStorage.setItem('events', JSON.stringify(response.user.events));
             setLoading(false);
             setState({
               ...state,
@@ -92,7 +91,7 @@ const Login = ({navigation}) => {
                 },
                 id: response.user._id
               },
-              events: resposeEvents,
+              events: response.user.events,
             });
           } else {
             setLoading(false);
@@ -103,6 +102,7 @@ const Login = ({navigation}) => {
         })
         .catch(error => {
           setLoading(false);
+          console.log(error)
           Alert.alert('Internal server error');
         });
     }

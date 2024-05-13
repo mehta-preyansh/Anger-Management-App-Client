@@ -18,7 +18,7 @@ const AuthProvider = ({children}) => {
         ...state,
         user: {
           ...state.user,
-          id: parsedUser._id,
+          id: parsedUser? parsedUser._id: initialState.user.id,
           isAuthenticated: parsedTokens.user_id? true: false,
           info: parsedUser
             ? {
@@ -27,11 +27,10 @@ const AuthProvider = ({children}) => {
                 username: parsedUser.username,
               }
             : initialState.user.info,
-          tokens: parsedTokens
+          tokens: parsedTokens ? parsedTokens : initialState.user.tokens,
         },
         events: parsedEvents ? parsedEvents : initialState.events,
       });
-      console.log(state)
     };
     localStorageData();
   }, []);
