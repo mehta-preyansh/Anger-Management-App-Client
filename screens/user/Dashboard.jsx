@@ -17,22 +17,26 @@ import {
   CODE_VERIFIER,
   ORIGIN_STATE,
   REDIRECT_URI,
+  API_ENDPOINT,
+  SERVER_URL,
 } from '@env';
 import {AuthContext} from '../../context/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/Ionicons';
-import IconAlt from 'react-native-vector-icons/MaterialCommunityIcons'
-import PushNotification from 'react-native-push-notification';
+import IconAlt from 'react-native-vector-icons/MaterialCommunityIcons';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
   const [state, setState] = useContext(AuthContext);
   const [HR, setHR] = useState(70);
   const [randomSleepTime, setSleepTime] = useState({hours: 7, minutes: 40});
   const [randomSteps, setSteps] = useState(3578);
   const authUrl = `${AUTH_ENDPOINT}?response_type=code&client_id=${CLIENT_ID}&scope=activity+cardio_fitness+electrocardiogram+heartrate+location+nutrition+oxygen_saturation+profile+respiratory_rate+settings+sleep+social+temperature+weight&code_challenge=${CODE_CHALLENGE}&code_challenge_method=S256&state=${ORIGIN_STATE}&redirect_uri=${REDIRECT_URI}`;
   const initialUrl = Linking.getInitialURL();
+
   const handleDeepLink = (url = initialUrl) => {
+    setLoading(true);
     const incomingState = url
       .split('?')[1]
       .split('&')[1]
@@ -49,46 +53,60 @@ export default function Dashboard() {
       })
         .then(res =>
           res.json().then(async response => {
-            await AsyncStorage.setItem('tokens', JSON.stringify(response));
-            setState({
-              ...state,
-              user: {
-                ...state.user,
-                tokens: {
-                  accessToken: response.access_token,
-                  refreshToken: response.refresh_token,
-                  expiresIn: response.expires_in,
-                  userId: response.user_id,
-                },
-                isAuthenticated: true,
+            const {user_id, access_token, refresh_token, expires_in} = response;
+            fetch(`${SERVER_URL}/userId`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
               },
-            });
-            setLoading(false);
+              body: JSON.stringify({
+                username: state.user.info.username,
+                userId: user_id,
+              }),
+            })
+              .then(res => res.json())
+              .then(async response => {
+                await AsyncStorage.setItem(
+                  'tokens',
+                  JSON.stringify({
+                    accessToken: access_token,
+                    refreshToken: refresh_token,
+                    expiresIn: expires_in,
+                    user_id,
+                  }),
+                );
+                setState({
+                  ...state,
+                  user: {
+                    ...state.user,
+                    isAuthenticated: true,
+                  },
+                  tokens: {
+                    accessToken: access_token,
+                    refreshToken: refresh_token,
+                    expiresIn: expires_in,
+                    user_id: user_id,
+                  },
+                });
+                setLoading(false);
+              })
+              .catch(e => {
+                Alert.alert(
+                  'Error getting user ID',
+                  'An error occurred while trying to connect to the server',
+                );
+                setLoading(false);
+              });
           }),
         )
-        .catch(e => console.log(e));
+        .catch(e => console.log('Error'));
     } else {
       Alert.alert('Error', 'The request was not generated from this app');
       setLoading(false);
     }
   };
-  useEffect(() => {
-    if (state.user.isAuthenticated) {
-      //   fetch(`https://api.fitbit.com/1/user/${state.user.tokens.userId}/spo2/date/2023-12-26/.json`,{
-      //   method: 'GET',
-      //   headers: {
-      //     'authorization': `Bearer ${state.user.tokens.access_token}`
-      //   }
-      // }).then(res => console.log(res)).catch(e =>console.log(e))
-      setInterval(() => {
-        const randomisezValue = Math.floor(Math.random() * (80 - 70 + 1)) + 70;
-        setHR(randomisezValue);
-      }, 10000);
 
-      setInterval(() => {
-        setSteps(prev => prev + Math.floor(Math.random() * (5 - 3 + 1)) + 3);
-      }, 30000);
-    }
+  useEffect(() => {
     // Listen for deep links when the component mounts
     const subscription = Linking.addEventListener('url', ({url}) => {
       handleDeepLink(url);
@@ -98,19 +116,33 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => {
-    if(HR>=78){
-      PushNotification.localNotification({
-        channelId: "angerApp",
-        title: "Your heart rate is raising rapidly.", // Specify the title of the notification
-        message: `HR is now ${HR}`, // Specify the message of the notification
-      });
+    if (state.user.isAuthenticated && state.tokens.accessToken) {
+      setDataLoading(true);
+      const intervalId = setInterval(() => {
+        fetch(
+          `${API_ENDPOINT}/1/user/${state.tokens.user_id}/activities/heart/date/today/1m.json`,
+          {
+            method: 'GET',
+            headers: {
+              authorization: `Bearer ${state.tokens.accessToken}`,
+            },
+          },
+        )
+          .then(response => response.json())
+          .then(res =>{
+            setHR(res['activities-heart'][0]['value']['restingHeartRate'])
+            setDataLoading(false)
+          }
+          )
+          .catch(e => console.log(e));
+      }, 15000);
+
+      return () => clearInterval(intervalId);
     }
-  }, [HR]);
+  }, [state.user.isAuthenticated]);
 
   const connectToFitbit = async () => {
-    setLoading(true);
     await Linking.openURL(authUrl);
-    setLoading(false);
   };
 
   return (
@@ -121,26 +153,39 @@ export default function Dashboard() {
         ) : state.user.isAuthenticated ? (
           <View style={styles.container}>
             <View style={styles.packet}>
-              <Text
-                style={styles.textContent}>{`Heart rate - ${HR}`}</Text>
-                <Icon name='heart' size={22} color={"#fff"}/>
+              {dataLoading ? (
+                <ActivityIndicator />
+              ) : (
+                <Text style={styles.textContent}>{`Heart rate - ${HR}`}</Text>
+              )}
+
+              <Icon name="heart" size={22} color={'#fff'} />
             </View>
             <View style={styles.packet}>
-              <Text style={styles.textContent}>{`Steps - ${randomSteps}`}</Text>
-              <Icon name='footsteps' size={22} color={"#fff"}/> 
+              {dataLoading ? (
+                <ActivityIndicator />
+              ) : (
+                <Text
+                  style={styles.textContent}>{`Steps - ${randomSteps}`}</Text>
+              )}
+              <Icon name="footsteps" size={22} color={'#fff'} />
             </View>
             <View style={styles.packet}>
-              <Text
-                style={
-                  styles.textContent
-                }>{`Sleep time - ${randomSleepTime.hours}h ${randomSleepTime.minutes}mins`}</Text>
-                <IconAlt name='sleep' size={22} color={"#fff"}/> 
+              {dataLoading ? (
+                <ActivityIndicator />
+              ) : (
+                <Text
+                  style={
+                    styles.textContent
+                  }>{`Sleep time - ${randomSleepTime.hours}h ${randomSleepTime.minutes}mins`}</Text>
+              )}
+              <IconAlt name="sleep" size={22} color={'#fff'} />
             </View>
           </View>
         ) : (
           <TouchableOpacity onPress={connectToFitbit} style={{marginRight: 10}}>
             <View style={styles.submitBtn}>
-              <Text style={{color: '#fff', fontSize: 20}}>Connect</Text>
+              <Text style={{color: '#fff', fontSize: 20}}>{`Connect`}</Text>
             </View>
           </TouchableOpacity>
         )}
@@ -166,7 +211,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'stretch',
     paddingVertical: 50,
-    gap: 50
+    gap: 50,
   },
   packet: {
     backgroundColor: '#7b5085',
@@ -181,6 +226,6 @@ const styles = StyleSheet.create({
   textContent: {
     fontSize: 18,
     color: '#fff',
-    padding: 5
+    padding: 5,
   },
 });

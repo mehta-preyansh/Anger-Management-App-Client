@@ -12,6 +12,7 @@ import {AuthContext} from '../../context/authContext';
 import DatePicker from '../../components/DatePicker';
 import Slider from 'react-native-slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {SERVER_URL} from '@env';
 
 const Feedback = () => {
   const [state, setState] = useContext(AuthContext);
@@ -47,7 +48,7 @@ const Feedback = () => {
         ],
       });
       //Submit to server
-      fetch(`https://anger-management-app-server.onrender.com/event`, {
+      fetch(`${SERVER_URL}/event`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,7 +1,6 @@
 import {
   ActivityIndicator,
   FlatList,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -11,6 +10,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {AuthContext} from '../../context/authContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AngerLog from '../../components/AngerLog';
+import {SERVER_URL} from '@env';
 
 export default function Logbook() {
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ export default function Logbook() {
       const eventsLength = state.events.length;
       if (!eventsLength) {
         fetch(
-          `https://anger-management-app-server.onrender.com/events?username=${state.user.info.username}`,
+          `${SERVER_URL}/events?username=${state.user.info.username}`,
           {
             method: 'GET',
             headers: {

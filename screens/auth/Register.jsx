@@ -1,6 +1,4 @@
 import React, {useState} from 'react';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
 import {
   View,
   Text,
@@ -10,7 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native'; 
-
+import {SERVER_URL} from '@env';
 
 const Register = ({navigation}) => {
   const [username, setUsername] = useState('');
@@ -20,32 +18,6 @@ const Register = ({navigation}) => {
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
 
-  GoogleSignin.configure({
-    webClientId:
-      '544509776632-i7uufe6fnvdllpmhmm1r33g2i26gbbne.apps.googleusercontent.com',
-  });
-  
-  async function onGoogleButtonPress() {
-    // Check if your device supports Google Play
-    console.log('started');
-    await GoogleSignin.hasPlayServices({showPlayServicesUpdateDialog: true});
-    console.log('step 1');
-    // Get the users ID token
-    try {
-      const {idToken, user} = await GoogleSignin.signIn();
-      console.log(user);
-      // Create a Google credential with the token
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-
-      // Sign-in the user with the credential
-      return auth().signInWithCredential(googleCredential);
-    } catch (e) {
-      console.log(e);
-      return null;
-    }
-
-
-  }
 
   const validation = ()=>{
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -81,7 +53,7 @@ const Register = ({navigation}) => {
   const handleRegister = () => {
     setLoading(true);
     if(validation()){
-      fetch(`https://anger-management-app-server.onrender.com/register`, {
+      fetch(`${SERVER_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -185,10 +157,6 @@ const Register = ({navigation}) => {
               </Text>
             </TouchableOpacity>
           )}
-          {/* <Text style={{color: '#d9d9d9'}}>Or continue with</Text> */}
-          {/* <TouchableOpacity onPress={onGoogleButtonPress}>
-            <Icon name="google" size={22} color="#fff" />
-          </TouchableOpacity> */}
           <View style={{flexDirection: 'row', gap: 6}}>
             <Text style={{color: '#d9d9d9'}}>Old User?</Text>
             <TouchableOpacity

@@ -13,7 +13,10 @@ import {TabButton} from '../components/NavigationBtn';
 import {View} from 'react-native-animatable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import { initialState } from '../context/initialState';
+import {initialState} from '../context/initialState';
+import {SERVER_URL} from '@env';
+
+// Call the function to request permission and get the device token
 
 const ScreenMenu = () => {
   const Stack = createNativeStackNavigator();
@@ -48,15 +51,29 @@ const ScreenMenu = () => {
   ];
 
   const logout = async () => {
-    setState(initialState);
-    await AsyncStorage.removeItem('user');
-    await AsyncStorage.removeItem('events');
+    //************DELETE DEVICE ID FROM DATABASE************/
+    fetch(`${SERVER_URL}/logout`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: state.user.info.username,
+        deviceId: state.deviceId,
+      }),
+    })
+      .then(async response => {
+        console.log("Response: ",response);
+        setState(initialState);
+        await AsyncStorage.multiRemove(['user', 'deviceId', 'events']);
+      })
+      .catch(err => console.log(err));
   };
 
   return (
     <>
       {authenticatedUser ? (
-        <View style={{flex:1, backgroundColor: '#0b0909'}}>
+        <View style={{flex: 1, backgroundColor: '#0b0909'}}>
           <View style={styles.headingWrapper}>
             <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>
               {`Hello, ${state.user.info.username}`}
@@ -65,7 +82,9 @@ const ScreenMenu = () => {
               <Icon name="power-off" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
-          <Tab.Navigator screenOptions={tabScreenOptions} initialRouteName='dashboard'>
+          <Tab.Navigator
+            screenOptions={tabScreenOptions}
+            initialRouteName="dashboard">
             {tabArr.map((item, index) => {
               return (
                 <Tab.Screen

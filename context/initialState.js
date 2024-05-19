@@ -7,12 +7,13 @@ export const initialState = {
       email: null,
       phone: null,
     },
-    tokens: {
-      accessToken: null,
-      refreshToken: null,
-      expiresIn: null,
-      user_id: null
-    },
   },
+  tokens: {
+    accessToken: null,
+    refreshToken: null,
+    expiresIn: null,
+    user_id: null
+  },
+  deviceId: [],
   events: [],
 }

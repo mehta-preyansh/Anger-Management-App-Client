@@ -1,6 +1,4 @@
-import React, {useContext, useState} from 'react';
-import {GoogleSignin} from '@react-native-google-signin/google-signin';
-import auth from '@react-native-firebase/auth';
+import React, {useContext, useEffect, useState} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import {
@@ -13,7 +11,9 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import {AuthContext} from '../../context/authContext';
-// import Icon from 'react-native-vector-icons/FontAwesome';
+import {SERVER_URL} from '@env';
+import messaging from '@react-native-firebase/messaging';
+
 
 const Login = ({navigation}) => {
   //Global state through context
@@ -22,27 +22,7 @@ const Login = ({navigation}) => {
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-
-  GoogleSignin.configure({
-    webClientId:
-      '544509776632-i7uufe6fnvdllpmhmm1r33g2i26gbbne.apps.googleusercontent.com',
-  });
-  async function onGoogleButtonPress() {
-    try {
-      // Check if your device supports Google Play
-      await GoogleSignin.hasPlayServices();
-      // Get the users ID token
-      const userInfo = await GoogleSignin.signIn();
-      console.log(userInfo);
-      // Create a Google credential with the token
-      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-
-      // Sign-in the user with the credential
-      return auth().signInWithCredential(googleCredential);
-    } catch (e) {
-      console.log(e);
-    }
-  }
+  const [disabled, setDisabled] = useState(true);
 
   const validation = () => {
     if (password.length < 8) {
@@ -57,9 +37,8 @@ const Login = ({navigation}) => {
   };
 
   const handleLogin = async () => {
-    setLoading(true);
     if (validation()) {
-      fetch(`https://anger-management-app-server.onrender.com/login`, {
+      fetch(`${SERVER_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,6 +46,7 @@ const Login = ({navigation}) => {
         body: JSON.stringify({
           username: username,
           password: password,
+          deviceId: state.deviceId
         }),
       })
         .then(response => {
@@ -78,6 +58,7 @@ const Login = ({navigation}) => {
             Alert.alert(response.message);
             await AsyncStorage.setItem('user', JSON.stringify(response.user));
             await AsyncStorage.setItem('events', JSON.stringify(response.user.events));
+            await AsyncStorage.setItem('deviceId', JSON.stringify(response.user.deviceId));
             setLoading(false);
             setState({
               ...state,
@@ -92,6 +73,7 @@ const Login = ({navigation}) => {
                 id: response.user._id
               },
               events: response.user.events,
+              deviceId: response.user.deviceId
             });
           } else {
             setLoading(false);
@@ -107,6 +89,30 @@ const Login = ({navigation}) => {
         });
     }
   };
+
+  const retrieveToken = async () => {
+    try {
+      const token = await messaging().getToken();
+      return token;
+    } catch (error) {
+      throw new Error(error);
+    }
+    // Now you have the device token, you can send it to your server for further use (e.g., for sending push notifications)
+  };
+
+  useEffect(() => {
+    console.log(state);
+    const fetchDeviceToken = async () => {
+      retrieveToken().then(token =>{  
+      setState({...state, deviceId: [token]});
+      setDisabled(false);
+    }).catch(err => Alert.alert('Error', 'Could not get device token'));
+  }
+    if(state.deviceId.length == 0) {
+
+      fetchDeviceToken()
+    }
+  }, [state]);
 
   return (
     <View style={styles.wrapper}>
@@ -137,21 +143,17 @@ const Login = ({navigation}) => {
           {loading ? (
             <ActivityIndicator />
           ) : (
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
+            <TouchableOpacity style={styles.loginButton} disabled={disabled} onPress={handleLogin}>
               <Text
                 style={{
                   fontSize: 24,
                   color: '#fff',
                   textTransform: 'uppercase',
                 }}>
-                Login
+                {`${disabled? 'Loading...': 'Login'}`}
               </Text>
             </TouchableOpacity>
           )}
-          {/* <Text style={{ color: '#d9d9d9' }}>Or continue with</Text>
-          <TouchableOpacity onPress={onGoogleButtonPress}>
-            <Icon name="google" size={22} color="#fff" />
-          </TouchableOpacity> */}
           <View style={{flexDirection: 'row', gap: 6}}>
             <Text style={{color: '#d9d9d9'}}>New User?</Text>
             <TouchableOpacity
