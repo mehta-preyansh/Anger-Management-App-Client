@@ -43,7 +43,6 @@ const App = ()=> {
         message: remoteMessage.notification.body,
       });
     });
-
     return unsubscribe;
   },[])
 

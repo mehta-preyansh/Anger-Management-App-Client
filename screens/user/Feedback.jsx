@@ -64,6 +64,17 @@ const Feedback = () => {
         .then(res => {
           if (res.status == 201) {
             Alert.alert('Submitted', `${res.message}`);
+            if(state.events.length===30){
+              fetch(`${SERVER_URL}/download`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                query: JSON.stringify({
+                  username: state.user.info.username,
+                }),
+              })
+            }
           } else {
             Alert.alert('Error', `${res.message}`);
           }

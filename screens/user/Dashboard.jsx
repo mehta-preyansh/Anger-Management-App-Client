@@ -110,7 +110,7 @@ export default function Dashboard() {
     // Listen for deep links when the component mounts
     const subscription = Linking.addEventListener('url', ({url}) => {
       handleDeepLink(url);
-    });
+    }); 
     // Clean up the subscription when the component unmounts
     return () => subscription.remove();
   }, []);
