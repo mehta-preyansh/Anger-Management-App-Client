@@ -13,7 +13,7 @@ import {
 import {AuthContext} from '../../context/authContext';
 import {SERVER_URL} from '@env';
 import messaging from '@react-native-firebase/messaging';
-
+import {PlaceholderLoader} from '../../components/PlaceholderLoader';
 
 const Login = ({navigation}) => {
   //Global state through context
@@ -22,7 +22,7 @@ const Login = ({navigation}) => {
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [disabled, setDisabled] = useState(true);
+  const [disabled, setDisabled] = useState(false);
 
   const validation = () => {
     if (password.length < 8) {
@@ -37,6 +37,7 @@ const Login = ({navigation}) => {
   };
 
   const handleLogin = async () => {
+    setLoading(true);
     if (validation()) {
       fetch(`${SERVER_URL}/login`, {
         method: 'POST',
@@ -46,7 +47,7 @@ const Login = ({navigation}) => {
         body: JSON.stringify({
           username: username,
           password: password,
-          deviceId: state.deviceId
+          deviceId: state.deviceId,
         }),
       })
         .then(response => {
@@ -57,8 +58,14 @@ const Login = ({navigation}) => {
             // Handle successful login
             Alert.alert(response.message);
             await AsyncStorage.setItem('user', JSON.stringify(response.user));
-            await AsyncStorage.setItem('events', JSON.stringify(response.user.events));
-            await AsyncStorage.setItem('deviceId', JSON.stringify(response.user.deviceId));
+            await AsyncStorage.setItem(
+              'events',
+              JSON.stringify(response.user.events),
+            );
+            await AsyncStorage.setItem(
+              'deviceId',
+              JSON.stringify(response.user.deviceId),
+            );
             setLoading(false);
             setState({
               ...state,
@@ -70,10 +77,10 @@ const Login = ({navigation}) => {
                   username: response.user.username,
                   phone: response.user.phone,
                 },
-                id: response.user._id
+                id: response.user._id,
               },
               events: response.user.events,
-              deviceId: response.user.deviceId
+              deviceId: response.user.deviceId,
             });
           } else {
             setLoading(false);
@@ -84,7 +91,7 @@ const Login = ({navigation}) => {
         })
         .catch(error => {
           setLoading(false);
-          console.log(error)
+          console.log(error);
           Alert.alert('Internal server error');
         });
     }
@@ -101,16 +108,17 @@ const Login = ({navigation}) => {
   };
 
   useEffect(() => {
-    console.log(state);
     const fetchDeviceToken = async () => {
-      retrieveToken().then(token =>{  
-      setState({...state, deviceId: [token]});
-      setDisabled(false);
-    }).catch(err => Alert.alert('Error', 'Could not get device token'));
-  }
-    if(state.deviceId.length == 0) {
-
-      fetchDeviceToken()
+      retrieveToken()
+        .then(token => {
+          setState({...state, deviceId: [token]});
+          setDisabled(false);
+        })
+        .catch(err => Alert.alert('Error', 'Could not get device token'));
+    };
+    if (state.deviceId.length == 0) {
+      setDisabled(true);
+      fetchDeviceToken();
     }
   }, [state]);
 
@@ -140,20 +148,23 @@ const Login = ({navigation}) => {
           />
         </View>
         <View style={styles.buttonContainer}>
-          {loading ? (
-            <ActivityIndicator />
-          ) : (
-            <TouchableOpacity style={styles.loginButton} disabled={disabled} onPress={handleLogin}>
+          <TouchableOpacity
+            style={styles.loginButton}
+            disabled={disabled || loading}
+            onPress={handleLogin}>
+            {loading ? (
+              <PlaceholderLoader />
+            ) : (
               <Text
                 style={{
                   fontSize: 24,
                   color: '#fff',
                   textTransform: 'uppercase',
                 }}>
-                {`${disabled? 'Loading...': 'Login'}`}
+                {`${'Login'}`}
               </Text>
-            </TouchableOpacity>
-          )}
+            )}
+          </TouchableOpacity>
           <View style={{flexDirection: 'row', gap: 6}}>
             <Text style={{color: '#d9d9d9'}}>New User?</Text>
             <TouchableOpacity
@@ -215,6 +226,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginButton: {
+    height: 60,
     borderRadius: 60,
     width: '100%',
     backgroundColor: '#4B20F3',

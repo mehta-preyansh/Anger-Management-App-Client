@@ -72,7 +72,7 @@ export default function Logbook() {
                 )}
               />
             ) : (
-              <Text>No Logs yet</Text>
+              <Text style={{color: "#919191", alignSelf: 'center'}}>No Logs yet</Text>
             )}
           </View>
         )}

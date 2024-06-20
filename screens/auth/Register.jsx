@@ -7,8 +7,9 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-} from 'react-native'; 
+} from 'react-native';
 import {SERVER_URL} from '@env';
+import {PlaceholderLoader} from '../../components/PlaceholderLoader';
 
 const Register = ({navigation}) => {
   const [username, setUsername] = useState('');
@@ -17,9 +18,9 @@ const Register = ({navigation}) => {
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [loading, setLoading] = useState(false);
+  const [disabled, setDisabled] = useState(false);
 
-
-  const validation = ()=>{
+  const validation = () => {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!regex.test(email)) {
       Alert.alert('Invalid email', 'Please enter a valid email address');
@@ -47,12 +48,12 @@ const Register = ({navigation}) => {
       setLoading(false);
       return false;
     }
-    return true
-  }
+    return true;
+  };
 
   const handleRegister = () => {
     setLoading(true);
-    if(validation()){
+    if (validation()) {
       fetch(`${SERVER_URL}/register`, {
         method: 'POST',
         headers: {
@@ -65,31 +66,29 @@ const Register = ({navigation}) => {
           mobile: mobile,
         }),
       })
-      // console.log("hi")
-      .then(response => {
-        setLoading(false);
-        return response.json()
-      })
-      .then(response=>{
-        if (response.status==201) {
-          //Registered successfully
-          Alert.alert(response.message);
-          navigation.navigate('login');
-        } else {
-          // Failed to register
-          Alert.alert(response.message);
-        }
-      })
-      .catch(error => {
-        setLoading(false);
-        Alert.alert("Internal server error")
-        console.error('Error:', error);
-      });
-    }
-    else{
-      setPassword('')
-      setCpassword('')
-      setLoading(false)
+        .then(response => {
+          return response.json();
+        })
+        .then(response => {
+          if (response.status == 201) {
+            //Registered successfully
+            setLoading(false);
+            Alert.alert(response.message);
+            navigation.navigate('login');
+          } else {
+            // Failed to register
+            setLoading(false);
+            Alert.alert(response.message);
+          }
+        })
+        .catch(error => {
+          setLoading(false);
+          Alert.alert('Internal server error');
+        });
+    } else {
+      setPassword('');
+      setCpassword('');
+      setLoading(false);
     }
   };
 
@@ -141,12 +140,10 @@ const Register = ({navigation}) => {
           />
         </View>
         <View style={styles.buttonContainer}>
-          {loading ? (
-            <ActivityIndicator />
-          ) : (
-            <TouchableOpacity
-              style={styles.loginButton}
-              onPress={handleRegister}>
+          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+            {loading ? (
+              <PlaceholderLoader />
+            ) : (
               <Text
                 style={{
                   fontSize: 24,
@@ -155,8 +152,8 @@ const Register = ({navigation}) => {
                 }}>
                 Register
               </Text>
-            </TouchableOpacity>
-          )}
+            )}
+          </TouchableOpacity>
           <View style={{flexDirection: 'row', gap: 6}}>
             <Text style={{color: '#d9d9d9'}}>Old User?</Text>
             <TouchableOpacity
@@ -217,7 +214,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  loginButton: {
+  registerButton: {
+    height: 60,
     borderRadius: 60,
     width: '100%',
     backgroundColor: '#4B20F3',

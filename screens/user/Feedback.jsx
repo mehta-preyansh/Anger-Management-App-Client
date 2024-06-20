@@ -12,7 +12,8 @@ import {AuthContext} from '../../context/authContext';
 import DatePicker from '../../components/DatePicker';
 import Slider from 'react-native-slider';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import {SERVER_URL} from '@env';
+import {SERVER_URL,MODEL_URL} from '@env';
+import {fetchDataFromFitbit} from '../../utils/fetchDataFromFitbit';
 
 const Feedback = () => {
   const [state, setState] = useContext(AuthContext);
@@ -22,8 +23,51 @@ const Feedback = () => {
     startTime: null,
     endTime: null,
     level: 5,
-  }
+    features: null,
+  };
   const [details, setDetails] = useState(initialDetails);
+
+  const formattedDate = date => {
+    const d = new Date(date);
+    return d.toISOString().split('T')[0];
+  };
+
+  const formattedTime = time => {
+    const dateObject = new Date(time);
+    const options = {hour: '2-digit', minute: '2-digit', hour12: false};
+    const formattedTime = dateObject.toLocaleTimeString('en-US', options);
+    return formattedTime;
+  };
+
+  const checkPredictionNeeded = () => {
+    if (state.events.length >= 5) {
+      //extract the features and targets from async storage
+      const featuresArr = state.events.map(event => event.features);
+      const targetsArr = state.events.map(event => event.level>6? 0 : 1);
+
+      //send the features and targets to the server
+      fetch(`${MODEL_URL}/fine_tune`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          features: featuresArr,
+          target: targetsArr,
+        }),
+      }).then(res => {
+        return res.json();
+      }).then(res => {
+        Alert.alert('Prediction', `The model prediction was successful`)
+        console.log(res);
+        //Set alarm at these live values
+      }).catch(err =>{
+        Alert.alert('Prediction', `The model prediction failed`)
+        console.log(err)
+      })
+        
+    }
+  }
 
   const submit = async () => {
     if (
@@ -32,57 +76,55 @@ const Feedback = () => {
       details.startTime &&
       details.endTime
     ) {
-      //Store in async storage
-      await AsyncStorage.setItem(
-        'events',
-        JSON.stringify([
-          ...state.events,
-          details,
-        ]),
-      );
-      setState({
-        ...state,
-        events: [
-          ...state.events,
-          details,
-        ],
-      });
-      //Submit to server
-      fetch(`${SERVER_URL}/event`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: state.user.info.username,
-          details,
-        }),
-      })
-        .then(res => {
-          return res.json();
+      try {
+        const response = await fetchDataFromFitbit(
+          state.tokens.accessToken,
+          state.tokens.user_id,
+          formattedDate(details.date),
+          formattedTime(details.startTime),
+          formattedTime(details.endTime),
+        );
+        //Submit to server
+        fetch(`${SERVER_URL}/event`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: state.user.info.username,
+            details,
+          }),
         })
-        .then(res => {
-          if (res.status == 201) {
-            Alert.alert('Submitted', `${res.message}`);
-            if(state.events.length===30){
-              fetch(`${SERVER_URL}/download`, {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                query: JSON.stringify({
-                  username: state.user.info.username,
-                }),
-              })
+          .then(res => {
+            return res.json();
+          })
+          .then(async res => {
+            if (res.status == 201) {
+              Alert.alert('Submitted', `${res.message}`);
+              setDetails({...details, features: response});
+              //Store in async storage
+              await AsyncStorage.setItem(
+                'events',
+                JSON.stringify([...state.events, details]),
+              );
+              setState({
+                ...state,
+                events: [...state.events, details],
+              });
+              checkPredictionNeeded()
+            } else {
+              Alert.alert('Error', `${res.message}`);
+              setDetails(initialDetails);
             }
-          } else {
-            Alert.alert('Error', `${res.message}`);
-          }
-        })
-        .catch(err => {
-          Alert.alert('Server error');
-        });
-      setDetails(initialDetails);
+          })
+          .catch(err => {
+            Alert.alert('Server error');
+            setDetails(initialDetails);
+          });
+      } catch (e) {
+        Alert.alert('Error', 'Error fetching data from Fitbit');
+        setDetails(initialDetails);
+      }
     } else {
       Alert.alert(
         'All fields required.',
