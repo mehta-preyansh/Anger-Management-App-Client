@@ -1,28 +1,28 @@
-import React, {useContext} from 'react';
-import {createNativeStackNavigator} from '@react-navigation/native-stack';
-import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
+import React, { useContext } from 'react';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import Register from '../screens/auth/Register';
 import Login from '../screens/auth/Login';
 import Feedback from '../screens/user/Feedback';
-import {AuthContext} from '../context/authContext';
+import { AuthContext } from '../context/authContext';
 import Logbook from '../screens/user/Logbook';
 import Dashboard from '../screens/user/Dashboard';
-import {StyleSheet, Text, TouchableOpacity} from 'react-native';
-import {Icons} from '../components/Icons';
-import {TabButton} from '../components/NavigationBtn';
-import {View} from 'react-native-animatable';
+import { StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { Icons } from '../components/Icons';
+import { TabButton } from '../components/NavigationBtn';
+import { View } from 'react-native-animatable';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import {initialState} from '../context/initialState';
-import {SERVER_URL} from '@env';
-
-// Call the function to request permission and get the device token
+import { initialState } from '../context/initialState';
+import { SERVER_URL } from '@env';
 
 const ScreenMenu = () => {
   const Stack = createNativeStackNavigator();
   const Tab = createBottomTabNavigator();
   const [state, setState] = useContext(AuthContext);
   const authenticatedUser = state.user.info.username;
+
+  // Tab configuration for authenticated users
   const tabArr = [
     {
       route: 'logbook',
@@ -50,20 +50,18 @@ const ScreenMenu = () => {
     },
   ];
 
+  // Logs user out and clears local data
   const logout = async () => {
-    //************DELETE DEVICE ID FROM DATABASE************/
     fetch(`${SERVER_URL}/logout`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username: state.user.info.username,
         deviceId: state.deviceId,
       }),
     })
       .then(async response => {
-        console.log("Response: ",response);
+        console.log('Response: ', response);
         setState(initialState);
         await AsyncStorage.multiRemove(['user', 'deviceId', 'events']);
       })
@@ -73,44 +71,46 @@ const ScreenMenu = () => {
   return (
     <>
       {authenticatedUser ? (
-        <View style={{flex: 1, backgroundColor: '#0b0909'}}>
+        // Authenticated view: show tabs
+        <View style={{ flex: 1, backgroundColor: '#0b0909' }}>
           <View style={styles.headingWrapper}>
-            <Text style={{color: 'white', fontSize: 20, fontWeight: 'bold'}}>
+            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>
               {`Hello, ${state.user.info.username}`}
             </Text>
-            <TouchableOpacity onPress={logout} style={{marginRight: 10}}>
+            <TouchableOpacity onPress={logout} style={{ marginRight: 10 }}>
               <Icon name="power-off" size={22} color="#fff" />
             </TouchableOpacity>
           </View>
+
           <Tab.Navigator
             screenOptions={tabScreenOptions}
-            initialRouteName="dashboard">
-            {tabArr.map((item, index) => {
-              return (
-                <Tab.Screen
-                  key={index}
-                  name={item.route}
-                  component={item.component}
-                  options={{
-                    tabBarShowLabel: false,
-                    tabBarButton: props => <TabButton {...props} item={item} />,
-                  }}
-                />
-              );
-            })}
+            initialRouteName="dashboard"
+          >
+            {tabArr.map((item, index) => (
+              <Tab.Screen
+                key={index}
+                name={item.route}
+                component={item.component}
+                options={{
+                  tabBarShowLabel: false,
+                  tabBarButton: props => <TabButton {...props} item={item} />,
+                }}
+              />
+            ))}
           </Tab.Navigator>
         </View>
       ) : (
+        // Unauthenticated view: show auth stack
         <Stack.Navigator>
           <Stack.Screen
             name="login"
             component={Login}
-            options={{headerShown: false}}
+            options={{ headerShown: false }}
           />
           <Stack.Screen
             name="register"
             component={Register}
-            options={{headerShown: false}}
+            options={{ headerShown: false }}
           />
         </Stack.Navigator>
       )}
@@ -120,6 +120,7 @@ const ScreenMenu = () => {
 
 export default ScreenMenu;
 
+// Tab bar appearance settings
 const tabScreenOptions = {
   headerShown: false,
   tabBarStyle: {

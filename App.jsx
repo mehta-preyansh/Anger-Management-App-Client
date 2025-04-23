@@ -1,11 +1,11 @@
 import React, { useEffect } from 'react';
-import {NavigationContainer} from '@react-navigation/native';
-import Navigation from './Navigation'
+import { NavigationContainer } from '@react-navigation/native';
+import Navigation from './Navigation';
 import PushNotification from 'react-native-push-notification';
-import {PermissionsAndroid} from 'react-native';
+import { PermissionsAndroid } from 'react-native';
 import messaging from '@react-native-firebase/messaging';
 
-// Request permission for receiving push notifications (optional)
+// Ask the user for notification permission (Android only)
 const requestUserPermission = async () => {
   const authStatus = await PermissionsAndroid.request(
     PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
@@ -15,41 +15,46 @@ const requestUserPermission = async () => {
   }
 };
 
-
-const App = ()=> {
-  useEffect(()=>{
+const App = () => {
+  useEffect(() => {
+    // Ensure notification channel exists (needed for Android 8+)
     PushNotification.channelExists('angerApp', exists => {
       if (!exists) {
         PushNotification.createChannel(
           {
-            channelId: 'angerApp',
-            channelName: 'Updates Channel',
+            channelId: 'angerApp', // ID used when triggering notifications
+            channelName: 'Updates Channel', // Visible name
             channelDescription: 'A channel to categorise your notifications',
             playSound: true,
             soundName: 'default',
-            importance: 4,
+            importance: 4, // Max importance for heads-up notifications
             vibrate: true,
           },
           created => console.log(`createChannel returned '${created}'`),
         );
       }
     });
+
     requestUserPermission();
+
+    // Listen for messages when app is in foreground
     const unsubscribe = messaging().onMessage(async remoteMessage => {
-      // Need to send notification/alarm to the user
       PushNotification.localNotification({
         channelId: 'angerApp',
         title: remoteMessage.notification.title,
         message: remoteMessage.notification.body,
       });
     });
+
+    // Cleanup listener on unmount
     return unsubscribe;
-  },[])
+  }, []);
 
   return (
     <NavigationContainer>
-      <Navigation/>
+      <Navigation />
     </NavigationContainer>
   );
-}
+};
+
 export default App;

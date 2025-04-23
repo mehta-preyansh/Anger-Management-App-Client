@@ -16,14 +16,16 @@ import messaging from '@react-native-firebase/messaging';
 import {PlaceholderLoader} from '../../components/PlaceholderLoader';
 
 const Login = ({navigation}) => {
-  //Global state through context
+  // Global state via context
   const [state, setState] = useContext(AuthContext);
-  //Component's local state
+
+  // Local state for form fields and loading
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [disabled, setDisabled] = useState(false);
 
+  // Validation for password length
   const validation = () => {
     if (password.length < 8) {
       Alert.alert(
@@ -36,6 +38,7 @@ const Login = ({navigation}) => {
     return true;
   };
 
+  // Function to handle login logic
   const handleLogin = async () => {
     setLoading(true);
     if (validation()) {
@@ -50,23 +53,16 @@ const Login = ({navigation}) => {
           deviceId: state.deviceId,
         }),
       })
-        .then(response => {
-          return response.json();
-        })
+        .then(response => response.json())
         .then(async response => {
           if (response.status == 200) {
-            // Handle successful login
+            // On successful login, store user data locally
             Alert.alert(response.message);
             await AsyncStorage.setItem('user', JSON.stringify(response.user));
-            await AsyncStorage.setItem(
-              'events',
-              JSON.stringify(response.user.events),
-            );
-            await AsyncStorage.setItem(
-              'deviceId',
-              JSON.stringify(response.user.deviceId),
-            );
-            setLoading(false);
+            await AsyncStorage.setItem('events', JSON.stringify(response.user.events));
+            await AsyncStorage.setItem('deviceId', JSON.stringify(response.user.deviceId));
+
+            // Update global context state
             setState({
               ...state,
               user: {
@@ -83,8 +79,8 @@ const Login = ({navigation}) => {
               deviceId: response.user.deviceId,
             });
           } else {
+            // On failed login, reset password field and show alert
             setLoading(false);
-            // Handle failed login
             Alert.alert(response.message);
             setPassword('');
           }
@@ -97,6 +93,7 @@ const Login = ({navigation}) => {
     }
   };
 
+  // Get Firebase device token for push notifications
   const retrieveToken = async () => {
     try {
       const token = await messaging().getToken();
@@ -104,18 +101,20 @@ const Login = ({navigation}) => {
     } catch (error) {
       throw new Error(error);
     }
-    // Now you have the device token, you can send it to your server for further use (e.g., for sending push notifications)
   };
 
+  // Fetch device token on mount if not already available
   useEffect(() => {
     const fetchDeviceToken = async () => {
       retrieveToken()
         .then(token => {
+          // Update device ID in global state
           setState({...state, deviceId: [token]});
           setDisabled(false);
         })
         .catch(err => Alert.alert('Error', 'Could not get device token'));
     };
+
     if (state.deviceId.length == 0) {
       setDisabled(true);
       fetchDeviceToken();
@@ -124,11 +123,14 @@ const Login = ({navigation}) => {
 
   return (
     <View style={styles.wrapper}>
+      {/* Header */}
       <View style={styles.header}>
         <Text style={{color: 'white', fontSize: 25, paddingLeft: 20}}>
           KRODhFit
         </Text>
       </View>
+
+      {/* Login Form */}
       <View style={styles.loginForm}>
         <View style={styles.inputFields}>
           <TextInput
@@ -147,6 +149,8 @@ const Login = ({navigation}) => {
             placeholderTextColor="#fff"
           />
         </View>
+
+        {/* Login Button */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
             style={styles.loginButton}
@@ -165,22 +169,21 @@ const Login = ({navigation}) => {
               </Text>
             )}
           </TouchableOpacity>
+
+          {/* Navigation to Register */}
           <View style={{flexDirection: 'row', gap: 6}}>
             <Text style={{color: '#d9d9d9'}}>New User?</Text>
-            <TouchableOpacity
-              onPress={() => {
-                navigation.replace('register');
-              }}>
+            <TouchableOpacity onPress={() => navigation.replace('register')}>
               <Text style={{color: '#8a445f'}}>Register here.</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-      {/* <StatusBar hidden /> */}
     </View>
   );
 };
 
+// Styles
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -236,4 +239,5 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
 });
+
 export default Login;
