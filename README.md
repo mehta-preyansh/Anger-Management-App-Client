@@ -69,6 +69,23 @@ This is a React Native application designed to track and log anger-related event
 
 - Slider: React Native component for selecting anger level.
 
+### Future Developments and Plans
+
+- **Email and Mobile Verification**: 
+   - Needed for user authentication and security.
+   - Integration with third-party services for verification.
+   - Need UI screens as well as backend support.
+
+- **Curating Dataset and Real time Analytics**:
+  - Curate a dataset of anger events for training the prediction model.
+  - Store the models response of threshold values for anger levels.
+  - Find a way to access real-time data from the Fitbit API.
+
+- **Wellness Integration**:
+  - Guided meditation and breathing exercises
+  - Stress management techniques
+  - Daily mood tracking alongside anger events
+
 ### Contributing
 - Fork the repository.
 
@@ -89,5 +106,6 @@ This is a React Native application designed to track and log anger-related event
 - **Setup Instructions**: Details on how to get the project up and running locally.
 - **API Endpoints**: Specifies the server API endpoints being used in the app.
 - **Technologies Used**: Lists the core technologies and tools used in the project.
+- **Future Developments and Plans**: Describes future enhancements and plans for the app.
 - **Contributing**: Basic guidelines on how to contribute to the project.
 

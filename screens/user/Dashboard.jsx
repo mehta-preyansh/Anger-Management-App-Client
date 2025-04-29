@@ -173,6 +173,38 @@ export default function Dashboard() {
     await Linking.openURL(authUrl);
   };
 
+  // Function to send test notification
+  const sendTestNotification = async () => {
+    try {
+      if (!state.deviceId || state.deviceId.length === 0) {
+        Alert.alert('Error', 'Device token not found');
+        return;
+      }
+
+      const response = await fetch(`${SERVER_URL}/notification/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          deviceToken: state.deviceId[0],
+          title: 'Test Notification',
+          body: 'This is a test notification from your dashboard!',
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        Alert.alert('Success', 'Test notification sent successfully!');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to send notification');
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      Alert.alert('Error', 'Failed to send notification');
+    }
+  };
+
   return (
     <SafeAreaView style={{flex: 1}}>
       <View style={styles.wrapper}>
@@ -205,6 +237,10 @@ export default function Dashboard() {
               )}
               <IconAlt name="sleep" size={22} color={'#fff'} /> {/* Sleep icon */}
             </View>
+            {/* Add test notification button */}
+            <TouchableOpacity onPress={sendTestNotification} style={styles.notificationButton}>
+              <Text style={styles.notificationButtonText}>Send Test Notification</Text>
+            </TouchableOpacity>
           </View>
         ) : (
           // Show the connect button if user is not authenticated
@@ -250,5 +286,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#fff',
     padding: 5,
+  },
+  notificationButton: {
+    backgroundColor: '#4B20F3',
+    padding: 15,
+    borderRadius: 8,
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  notificationButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });

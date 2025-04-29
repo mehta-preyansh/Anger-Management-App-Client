@@ -1,6 +1,5 @@
-import React, {useContext, useEffect, useState} from 'react';
+import React, {useContext, useEffect, useState, useCallback} from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-
 import {
   View,
   Text,
@@ -8,129 +7,163 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {AuthContext} from '../../context/authContext';
 import {SERVER_URL} from '@env';
 import messaging from '@react-native-firebase/messaging';
 import {PlaceholderLoader} from '../../components/PlaceholderLoader';
 
-const Login = ({navigation}) => {
-  // Global state via context
-  const [state, setState] = useContext(AuthContext);
+// Constants
+const MIN_PASSWORD_LENGTH = 8;
+const STORAGE_KEYS = {
+  USER: 'user',
+  EVENTS: 'events',
+  DEVICE_ID: 'deviceId',
+};
 
-  // Local state for form fields and loading
+// Validation messages
+const VALIDATION_MESSAGES = {
+  PASSWORD_TOO_SHORT: 'Password must be at least 8 characters long.',
+  LOGIN_ERROR: 'Login failed. Please try again.',
+  SERVER_ERROR: 'Internal server error',
+  DEVICE_TOKEN_ERROR: 'Could not get device token',
+};
+
+const Login = ({navigation}) => {
+  const {state, setState} = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [disabled, setDisabled] = useState(false);
 
-  // Validation for password length
-  const validation = () => {
-    if (password.length < 8) {
-      Alert.alert(
-        'Password is too short',
-        'Password must be at least 8 characters long.',
-      );
+  // Validate form inputs
+  const validateForm = useCallback(() => {
+    if (password.length < MIN_PASSWORD_LENGTH) {
+      Alert.alert('Password is too short', VALIDATION_MESSAGES.PASSWORD_TOO_SHORT);
+      setLoading(false);
+      return false;
+    }
+    if (!username.trim()) {
+      Alert.alert('Invalid Username', 'Please enter a valid username');
       setLoading(false);
       return false;
     }
     return true;
-  };
+  }, [password, username]);
 
-  // Function to handle login logic
-  const handleLogin = async () => {
+  // Handle successful login
+  const handleSuccessfulLogin = useCallback(async (response) => {
+    try {
+      // Store user data in AsyncStorage
+      await Promise.all([
+        AsyncStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(response.user)),
+        AsyncStorage.setItem(STORAGE_KEYS.EVENTS, JSON.stringify(response.user.events)),
+        AsyncStorage.setItem(STORAGE_KEYS.DEVICE_ID, JSON.stringify(response.user.deviceId)),
+      ]);
+
+      // Update global state
+      setState(prevState => ({
+        ...prevState,
+        user: {
+          ...prevState.user,
+          info: {
+            ...prevState.user.info,
+            email: response.user.email,
+            username: response.user.username,
+            phone: response.user.phone,
+          },
+          id: response.user._id,
+        },
+        events: response.user.events,
+        deviceId: response.user.deviceId,
+      }));
+
+      Alert.alert('Success', response.message);
+    } catch (error) {
+      console.error('Error storing user data:', error);
+      Alert.alert('Error', 'Failed to store user data');
+    }
+  }, [setState]);
+
+  // Handle login request
+  const handleLogin = useCallback(async () => {
+    if (!validateForm()) return;
+
     setLoading(true);
-    if (validation()) {
-      fetch(`${SERVER_URL}/login`, {
+    try {
+      const response = await fetch(`${SERVER_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({
-          username: username,
-          password: password,
+          username: username.trim(),
+          password,
           deviceId: state.deviceId,
         }),
-      })
-        .then(response => response.json())
-        .then(async response => {
-          if (response.status == 200) {
-            // On successful login, store user data locally
-            Alert.alert(response.message);
-            await AsyncStorage.setItem('user', JSON.stringify(response.user));
-            await AsyncStorage.setItem('events', JSON.stringify(response.user.events));
-            await AsyncStorage.setItem('deviceId', JSON.stringify(response.user.deviceId));
+        timeout: 10000, // 10 second timeout
+      });
 
-            // Update global context state
-            setState({
-              ...state,
-              user: {
-                ...state.user,
-                info: {
-                  ...state.user.info,
-                  email: response.user.email,
-                  username: response.user.username,
-                  phone: response.user.phone,
-                },
-                id: response.user._id,
-              },
-              events: response.user.events,
-              deviceId: response.user.deviceId,
-            });
-          } else {
-            // On failed login, reset password field and show alert
-            setLoading(false);
-            Alert.alert(response.message);
-            setPassword('');
-          }
-        })
-        .catch(error => {
-          setLoading(false);
-          console.log(error);
-          Alert.alert('Internal server error');
-        });
-    }
-  };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
 
-  // Get Firebase device token for push notifications
-  const retrieveToken = async () => {
-    try {
-      const token = await messaging().getToken();
-      return token;
+      const data = await response.json();
+
+      if (data.status === 200) {
+        await handleSuccessfulLogin(data);
+      } else {
+        Alert.alert('Error', data.message || VALIDATION_MESSAGES.LOGIN_ERROR);
+        setPassword('');
+      }
     } catch (error) {
-      throw new Error(error);
+      Alert.alert('Error', VALIDATION_MESSAGES.SERVER_ERROR);
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [username, password, state.deviceId, validateForm, handleSuccessfulLogin]);
 
-  // Fetch device token on mount if not already available
+  // Get Firebase device token
+  const retrieveToken = useCallback(async () => {
+    try {
+      return await messaging().getToken();
+    } catch (error) {
+      console.error('Error retrieving device token:', error);
+      throw error;
+    }
+  }, []);
+
+  // Initialize device token
   useEffect(() => {
-    const fetchDeviceToken = async () => {
-      retrieveToken()
-        .then(token => {
-          // Update device ID in global state
-          setState({...state, deviceId: [token]});
+    const initializeDeviceToken = async () => {
+      if (state.deviceId.length === 0) {
+        setDisabled(true);
+        try {
+          const token = await retrieveToken();
+          setState(prevState => ({...prevState, deviceId: [token]}));
+        } catch (error) {
+          Alert.alert('Error', VALIDATION_MESSAGES.DEVICE_TOKEN_ERROR);
+        } finally {
           setDisabled(false);
-        })
-        .catch(err => Alert.alert('Error', 'Could not get device token'));
+        }
+      }
     };
 
-    if (state.deviceId.length == 0) {
-      setDisabled(true);
-      fetchDeviceToken();
-    }
-  }, [state]);
+    initializeDeviceToken();
+  }, [state.deviceId.length, retrieveToken, setState]);
 
   return (
-    <View style={styles.wrapper}>
-      {/* Header */}
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.wrapper}>
       <View style={styles.header}>
-        <Text style={{color: 'white', fontSize: 25, paddingLeft: 20}}>
-          KRODhFit
-        </Text>
+        <Text style={styles.headerText}>KRODhFit</Text>
       </View>
 
-      {/* Login Form */}
       <View style={styles.loginForm}>
         <View style={styles.inputFields}>
           <TextInput
@@ -139,6 +172,8 @@ const Login = ({navigation}) => {
             value={username}
             onChangeText={setUsername}
             placeholderTextColor="#fff"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
           <TextInput
             style={styles.input}
@@ -147,43 +182,35 @@ const Login = ({navigation}) => {
             value={password}
             onChangeText={setPassword}
             placeholderTextColor="#fff"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
         </View>
 
-        {/* Login Button */}
         <View style={styles.buttonContainer}>
           <TouchableOpacity
-            style={styles.loginButton}
+            style={[styles.loginButton, (disabled || loading) && styles.disabledButton]}
             disabled={disabled || loading}
             onPress={handleLogin}>
             {loading ? (
               <PlaceholderLoader />
             ) : (
-              <Text
-                style={{
-                  fontSize: 24,
-                  color: '#fff',
-                  textTransform: 'uppercase',
-                }}>
-                {`${'Login'}`}
-              </Text>
+              <Text style={styles.loginButtonText}>Login</Text>
             )}
           </TouchableOpacity>
 
-          {/* Navigation to Register */}
-          <View style={{flexDirection: 'row', gap: 6}}>
-            <Text style={{color: '#d9d9d9'}}>New User?</Text>
+          <View style={styles.registerContainer}>
+            <Text style={styles.registerText}>New User?</Text>
             <TouchableOpacity onPress={() => navigation.replace('register')}>
-              <Text style={{color: '#8a445f'}}>Register here.</Text>
+              <Text style={styles.registerLink}>Register here.</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -197,9 +224,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
     backgroundColor: '#45015d',
   },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
+  headerText: {
+    color: 'white',
+    fontSize: 25,
+    paddingLeft: 20,
   },
   loginForm: {
     alignItems: 'center',
@@ -237,6 +265,24 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     elevation: 3,
+  },
+  disabledButton: {
+    opacity: 0.6,
+  },
+  loginButtonText: {
+    fontSize: 24,
+    color: '#fff',
+    textTransform: 'uppercase',
+  },
+  registerContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  registerText: {
+    color: '#d9d9d9',
+  },
+  registerLink: {
+    color: '#8a445f',
   },
 });
 

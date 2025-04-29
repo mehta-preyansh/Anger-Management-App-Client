@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useState, useCallback} from 'react';
 import {
   View,
   Text,
@@ -6,184 +6,218 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {SERVER_URL} from '@env';
 import {PlaceholderLoader} from '../../components/PlaceholderLoader';
+import PropTypes from 'prop-types';
+
+// Validation utility functions
+const validateEmail = (email) => {
+  const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return regex.test(email);
+};
+
+const validatePassword = (password) => {
+  return password.length >= 8;
+};
+
+const validateForm = (formData) => {
+  const {email, username, password, cpassword} = formData;
+  const errors = {};
+
+  if (!email || !validateEmail(email)) {
+    errors.email = 'Please enter a valid email address';
+  }
+  if (!username) {
+    errors.username = 'Username is required';
+  }
+  if (!password || !validatePassword(password)) {
+    errors.password = 'Password must be at least 8 characters long';
+  }
+  if (password !== cpassword) {
+    errors.cpassword = 'Passwords do not match';
+  }
+
+  return errors;
+};
 
 const Register = ({navigation}) => {
-  // Local state for the form fields and loading state
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [cpassword, setCpassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
+  const [formData, setFormData] = useState({
+    username: '',
+    password: '',
+    cpassword: '',
+    email: '',
+    mobile: '',
+  });
   const [loading, setLoading] = useState(false);
-  const [disabled, setDisabled] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  // Validation function to check if the inputs are correct
-  const validation = () => {
-    const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Email validation regex
-    // Check for valid email format
-    if (!regex.test(email)) {
-      Alert.alert('Invalid email', 'Please enter a valid email address');
-      setLoading(false);
-      return false;
+  const handleInputChange = useCallback((field, value) => {
+    setFormData(prev => ({...prev, [field]: value}));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors(prev => ({...prev, [field]: ''}));
     }
-    // Check if any field is empty
-    if ([username, email, password, cpassword].some(field => !field)) {
-      Alert.alert(
-        'Required fields',
-        'Please fill in all the compulsory details.',
-      );
-      setLoading(false);
-      return false;
-    }
-    // Check if password and confirm password match
-    if (password !== cpassword) {
-      Alert.alert('Invalid password', 'Passwords do not match');
-      setLoading(false);
-      return false;
-    }
-    // Check if password is at least 8 characters
-    if (password.length < 8) {
-      Alert.alert(
-        'Invalid password',
-        'Password must be at least 8 characters long.',
-      );
-      setLoading(false);
-      return false;
-    }
-    return true;
-  };
+  }, [errors]);
 
-  // Function to handle registration
-  const handleRegister = () => {
-    setLoading(true); // Set loading state to true while processing
-    if (validation()) {
-      // Proceed with registration if validation passes
-      fetch(`${SERVER_URL}/register`, {
+  const handleRegister = useCallback(async () => {
+    setLoading(true);
+    const validationErrors = validateForm(formData);
+    
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${SERVER_URL}/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          username: username,
-          password: password,
-          email: email,
-          mobile: mobile,
-        }),
-      })
-        .then(response => response.json()) // Parse the response as JSON
-        .then(response => {
-          if (response.status == 201) {
-            // Successful registration
-            setLoading(false); // Set loading to false
-            Alert.alert(response.message); // Show success message
-            navigation.navigate('login'); // Redirect to login screen
-          } else {
-            // Registration failed
-            setLoading(false);
-            Alert.alert(response.message); // Show error message
-          }
-        })
-        .catch(error => {
-          // Handle any errors during the fetch call
-          setLoading(false);
-          Alert.alert('Internal server error');
-        });
-    } else {
-      // If validation fails, reset password fields and stop loading
-      setPassword('');
-      setCpassword('');
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (response.status === 201) {
+        Alert.alert('Success', data.message);
+        navigation.navigate('login');
+      } else {
+        Alert.alert('Error', data.message);
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      Alert.alert(
+        'Error',
+        error.message === 'Network request failed' 
+          ? 'Please check your internet connection and try again.'
+          : 'An error occurred during registration. Please try again.'
+      );
+    } finally {
       setLoading(false);
     }
-  };
+  }, [formData, navigation]);
 
   return (
-    <View style={styles.wrapper}>
-      {/* Header */}
+    <KeyboardAvoidingView 
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.wrapper}
+    >
       <View style={styles.header}>
-        <Text style={{color: 'white', fontSize: 25, paddingLeft: 20}}>
-          KRODhFit
-        </Text>
+        <Text style={styles.headerText}>KRODhFit</Text>
       </View>
 
-      {/* Registration Form */}
       <View style={styles.loginForm}>
         <View style={styles.inputFields}>
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.email && styles.inputError]}
             placeholder="Email *"
-            value={email}
-            onChangeText={setEmail}
+            value={formData.email}
+            onChangeText={(value) => handleInputChange('email', value)}
             placeholderTextColor="#ffffff95"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            accessibilityLabel="Email input"
+            accessibilityHint="Enter your email address"
           />
+          {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.username && styles.inputError]}
             placeholder="Username *"
-            value={username}
-            onChangeText={setUsername}
+            value={formData.username}
+            onChangeText={(value) => handleInputChange('username', value)}
             placeholderTextColor="#ffffff95"
+            autoCapitalize="none"
+            accessibilityLabel="Username input"
+            accessibilityHint="Enter your username"
           />
+          {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+
           <TextInput
             style={styles.input}
             placeholder="Mobile number"
-            value={mobile}
-            onChangeText={setMobile}
+            value={formData.mobile}
+            onChangeText={(value) => handleInputChange('mobile', value)}
             placeholderTextColor="#ffffff95"
+            keyboardType="phone-pad"
+            accessibilityLabel="Mobile number input"
+            accessibilityHint="Enter your mobile number (optional)"
           />
+
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.password && styles.inputError]}
             placeholder="Password *"
             secureTextEntry={true}
-            value={password}
-            onChangeText={setPassword}
+            value={formData.password}
+            onChangeText={(value) => handleInputChange('password', value)}
             placeholderTextColor="#ffffff95"
+            accessibilityLabel="Password input"
+            accessibilityHint="Enter your password"
           />
+          {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
           <TextInput
-            style={styles.input}
+            style={[styles.input, errors.cpassword && styles.inputError]}
             placeholder="Confirm Password *"
             secureTextEntry={true}
-            value={cpassword}
-            onChangeText={setCpassword}
+            value={formData.cpassword}
+            onChangeText={(value) => handleInputChange('cpassword', value)}
             placeholderTextColor="#ffffff95"
+            accessibilityLabel="Confirm password input"
+            accessibilityHint="Confirm your password"
           />
+          {errors.cpassword && <Text style={styles.errorText}>{errors.cpassword}</Text>}
         </View>
 
-        {/* Register Button */}
         <View style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
+          <TouchableOpacity 
+            style={styles.registerButton} 
+            onPress={handleRegister}
+            disabled={loading}
+            accessibilityRole="button"
+            accessibilityLabel="Register button"
+            accessibilityHint="Tap to complete registration"
+          >
             {loading ? (
-              <PlaceholderLoader /> // Show loading spinner while submitting
+              <PlaceholderLoader />
             ) : (
-              <Text
-                style={{
-                  fontSize: 24,
-                  color: '#fff',
-                  textTransform: 'uppercase',
-                }}>
-                Register
-              </Text>
+              <Text style={styles.registerButtonText}>Register</Text>
             )}
           </TouchableOpacity>
 
-          {/* Link to login page if the user already has an account */}
-          <View style={{flexDirection: 'row', gap: 6}}>
-            <Text style={{color: '#d9d9d9'}}>Old User?</Text>
+          <View style={styles.loginLinkContainer}>
+            <Text style={styles.loginText}>Old User?</Text>
             <TouchableOpacity
-              onPress={() => {
-                navigation.replace('login'); // Navigate to login screen
-              }}>
-              <Text style={{color: '#8a445f'}}>Login here.</Text>
+              onPress={() => navigation.replace('login')}
+              accessibilityRole="button"
+              accessibilityLabel="Login link"
+              accessibilityHint="Tap to go to login screen"
+            >
+              <Text style={styles.loginLink}>Login here.</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 };
 
-// Styles for the component
+Register.propTypes = {
+  navigation: PropTypes.shape({
+    navigate: PropTypes.func.isRequired,
+    replace: PropTypes.func.isRequired,
+  }).isRequired,
+};
+
 const styles = StyleSheet.create({
   wrapper: {
     flex: 1,
@@ -197,9 +231,10 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
     backgroundColor: '#45015d',
   },
-  title: {
-    fontSize: 24,
-    marginBottom: 20,
+  headerText: {
+    color: 'white',
+    fontSize: 25,
+    paddingLeft: 20,
   },
   loginForm: {
     alignItems: 'center',
@@ -221,6 +256,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 20,
   },
+  inputError: {
+    borderColor: '#ff4444',
+    borderWidth: 1,
+  },
+  errorText: {
+    color: '#ff4444',
+    alignSelf: 'flex-start',
+    marginTop: -15,
+    marginBottom: 5,
+  },
   buttonContainer: {
     marginBottom: 50,
     width: '50%',
@@ -237,6 +282,21 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
     elevation: 3,
+  },
+  registerButtonText: {
+    fontSize: 24,
+    color: '#fff',
+    textTransform: 'uppercase',
+  },
+  loginLinkContainer: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  loginText: {
+    color: '#d9d9d9',
+  },
+  loginLink: {
+    color: '#8a445f',
   },
 });
 

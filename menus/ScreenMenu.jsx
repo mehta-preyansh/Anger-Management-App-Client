@@ -1,127 +1,119 @@
-import React, { useContext } from 'react';
+import React, { useContext, useCallback } from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import Register from '../screens/auth/Register';
-import Login from '../screens/auth/Login';
-import Feedback from '../screens/user/Feedback';
-import { AuthContext } from '../context/authContext';
-import Logbook from '../screens/user/Logbook';
-import Dashboard from '../screens/user/Dashboard';
-import { StyleSheet, Text, TouchableOpacity } from 'react-native';
-import { Icons } from '../components/Icons';
-import { TabButton } from '../components/NavigationBtn';
-import { View } from 'react-native-animatable';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import PropTypes from 'prop-types';
+
+// Components
+import { AuthContext } from '../context/authContext';
+import { TabButton } from '../components/NavigationBtn';
+
+// Screens
+import Register from '../screens/auth/Register';
+import Login from '../screens/auth/Login';
+
+// Constants
 import { initialState } from '../context/initialState';
 import { SERVER_URL } from '@env';
+import { TAB_CONFIG } from '../constants/navigation';
 
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+/**
+ * ScreenMenu component handles the main navigation structure of the app.
+ * It conditionally renders either the authentication stack or the main tab navigation
+ * based on the user's authentication status.
+ */
 const ScreenMenu = () => {
-  const Stack = createNativeStackNavigator();
-  const Tab = createBottomTabNavigator();
-  const [state, setState] = useContext(AuthContext);
-  const authenticatedUser = state.user.info.username;
+  const { state, setState } = useContext(AuthContext);
+  const { username } = state.user.info;
 
-  // Tab configuration for authenticated users
-  const tabArr = [
-    {
-      route: 'logbook',
-      label: 'Logbook',
-      component: Logbook,
-      inactiveIcon: 'book-outline',
-      activeIcon: 'book',
-      iconType: Icons.Ionicons,
-    },
-    {
-      route: 'dashboard',
-      label: 'Dashboard',
-      component: Dashboard,
-      inactiveIcon: 'view-dashboard-outline',
-      activeIcon: 'view-dashboard',
-      iconType: Icons.MaterialCommunityIcons,
-    },
-    {
-      route: 'feedback',
-      label: 'Feedback',
-      component: Feedback,
-      inactiveIcon: 'page',
-      activeIcon: 'page-edit',
-      iconType: Icons.Foundation,
-    },
-  ];
+  /**
+   * Handles user logout by clearing local storage and resetting app state
+   */
+  const handleLogout = useCallback(async () => {
+    try {
+      const response = await fetch(`${SERVER_URL}/logout`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: state.user.info.username,
+          deviceId: state.deviceId,
+        }),
+      });
 
-  // Logs user out and clears local data
-  const logout = async () => {
-    fetch(`${SERVER_URL}/logout`, {
-      method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        username: state.user.info.username,
-        deviceId: state.deviceId,
-      }),
-    })
-      .then(async response => {
-        console.log('Response: ', response);
-        setState(initialState);
-        await AsyncStorage.multiRemove(['user', 'deviceId', 'events']);
-      })
-      .catch(err => console.log(err));
-  };
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
+      setState(initialState);
+      await AsyncStorage.multiRemove(['user', 'deviceId', 'events']);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // TODO: Add proper error handling UI
+    }
+  }, [state.user.info.username, state.deviceId, setState]);
+
+  if (!username) {
+    return (
+      <Stack.Navigator>
+        <Stack.Screen
+          name="login"
+          component={Login}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="register"
+          component={Register}
+          options={{ headerShown: false }}
+        />
+      </Stack.Navigator>
+    );
+  }
 
   return (
-    <>
-      {authenticatedUser ? (
-        // Authenticated view: show tabs
-        <View style={{ flex: 1, backgroundColor: '#0b0909' }}>
-          <View style={styles.headingWrapper}>
-            <Text style={{ color: 'white', fontSize: 20, fontWeight: 'bold' }}>
-              {`Hello, ${state.user.info.username}`}
-            </Text>
-            <TouchableOpacity onPress={logout} style={{ marginRight: 10 }}>
-              <Icon name="power-off" size={22} color="#fff" />
-            </TouchableOpacity>
-          </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.greeting}>
+          {username ? `Hello, ${username}` : 'Hello'}
+        </Text>
+        <TouchableOpacity 
+          onPress={handleLogout} 
+          style={styles.logoutButton}
+          accessibilityLabel="Logout button"
+        >
+          <Icon name="power-off" size={22} color="#fff" />
+        </TouchableOpacity>
+      </View>
 
-          <Tab.Navigator
-            screenOptions={tabScreenOptions}
-            initialRouteName="dashboard"
-          >
-            {tabArr.map((item, index) => (
-              <Tab.Screen
-                key={index}
-                name={item.route}
-                component={item.component}
-                options={{
-                  tabBarShowLabel: false,
-                  tabBarButton: props => <TabButton {...props} item={item} />,
-                }}
-              />
-            ))}
-          </Tab.Navigator>
-        </View>
-      ) : (
-        // Unauthenticated view: show auth stack
-        <Stack.Navigator>
-          <Stack.Screen
-            name="login"
-            component={Login}
-            options={{ headerShown: false }}
+      <Tab.Navigator
+        screenOptions={TAB_SCREEN_OPTIONS}
+        initialRouteName="dashboard"
+      >
+        {TAB_CONFIG.map((item, index) => (
+          <Tab.Screen
+            key={index}
+            name={item.route}
+            component={item.component}
+            options={{
+              tabBarShowLabel: false,
+              tabBarButton: props => <TabButton {...props} item={item} />,
+            }}
           />
-          <Stack.Screen
-            name="register"
-            component={Register}
-            options={{ headerShown: false }}
-          />
-        </Stack.Navigator>
-      )}
-    </>
+        ))}
+      </Tab.Navigator>
+    </View>
   );
 };
 
-export default ScreenMenu;
+ScreenMenu.propTypes = {
+  navigation: PropTypes.object,
+};
 
-// Tab bar appearance settings
-const tabScreenOptions = {
+const TAB_SCREEN_OPTIONS = {
   headerShown: false,
   tabBarStyle: {
     height: 60,
@@ -135,7 +127,11 @@ const tabScreenOptions = {
 };
 
 const styles = StyleSheet.create({
-  headingWrapper: {
+  container: {
+    flex: 1,
+    backgroundColor: '#0b0909',
+  },
+  header: {
     flexDirection: 'row',
     height: 80,
     alignItems: 'center',
@@ -146,4 +142,14 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 20,
     backgroundColor: '#45015d',
   },
+  greeting: {
+    color: 'white',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  logoutButton: {
+    marginRight: 10,
+  },
 });
+
+export default ScreenMenu;

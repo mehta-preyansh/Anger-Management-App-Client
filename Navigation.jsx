@@ -6,7 +6,7 @@ import ScreenMenu from './menus/ScreenMenu';
 const Navigation = () => {
   return (
     <AuthProvider>
-      <ScreenMenu /> {/* Handles screen routing/navigation */}
+      <ScreenMenu />
     </AuthProvider>
   );
 };
